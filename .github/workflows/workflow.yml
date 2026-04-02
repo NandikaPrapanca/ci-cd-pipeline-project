@@ -17,5 +17,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Run a simple command
-        run: echo "Workflow is running!"
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install flake8 nose
+
+      - name: Lint with flake8
+        run: |
+          flake8 .
+
+      - name: Run unit tests with nose
+        run: |
+          nosetests
