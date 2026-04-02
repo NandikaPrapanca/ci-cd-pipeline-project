@@ -1,0 +1,33 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: echo-task
+spec:
+  params:
+    - name: message
+      type: string
+      default: "Hello from Tekton!"
+  steps:
+    - name: echo
+      image: ubuntu
+      script: |
+        #!/bin/bash
+        echo "$(params.message)"
+---
+---
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: simple-pipeline
+spec:
+  params:
+    - name: message
+      type: string
+      default: "Running pipeline..."
+  tasks:
+    - name: run-echo
+      taskRef:
+        name: echo-task
+      params:
+        - name: message
+          value: "$(params.message)"
