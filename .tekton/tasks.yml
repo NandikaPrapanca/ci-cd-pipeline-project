@@ -9,16 +9,13 @@ spec:
     - name: branch-name
       type: string
       default: main
-    - name: image-name
-      type: string
-      default: image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/myapp
 
   workspaces:
     - name: shared-workspace
 
   tasks:
 
-    # 1. CLONE REPO
+    # 1. CLONE
     - name: clone-repo
       taskRef:
         name: git-clone
@@ -31,18 +28,17 @@ spec:
         - name: output
           workspace: shared-workspace
 
-    # 2. INSTALL + LINT + TEST
+    # 2. TEST
     - name: test-app
       runAfter: ["clone-repo"]
       taskSpec:
         workspaces:
           - name: source
         steps:
-          - name: install-deps
+          - name: install
             image: python:3.9-slim
             workingDir: /workspace/source
             script: |
-              pip install --upgrade pip
               pip install flake8 nose
 
           - name: lint
@@ -61,3 +57,14 @@ spec:
       workspaces:
         - name: source
           workspace: shared-workspace
+
+    # 3. DEPLOY
+    - name: deploy
+      runAfter: ["test-app"]
+      taskSpec:
+        steps:
+          - name: deploy-to-openshift
+            image: quay.io/openshift/origin-cli
+            script: |
+              oc new-app python:3.9-slim --name=myapp || true
+              oc expose svc myapp || true
