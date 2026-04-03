@@ -25,10 +25,16 @@ spec:
         name: pipeline-run-$(uid)
       spec:
         pipelineRef:
-          name: simple-pipeline
+          name: full-cd-pipeline
         params:
-          - name: message
-            value: "Triggered from GitHub"
+          - name: repo-url
+            value: "$(tt.params.gitrepositoryurl)"
+          - name: branch-name
+            value: "main"
+        workspaces:
+          - name: shared-workspace
+            emptyDir: {}
+
 ---
 apiVersion: triggers.tekton.dev/v1beta1
 kind: EventListener

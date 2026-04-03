@@ -1,33 +1,63 @@
 apiVersion: tekton.dev/v1beta1
-kind: Task
-metadata:
-  name: echo-task
-spec:
-  params:
-    - name: message
-      type: string
-      default: "Hello from Tekton!"
-  steps:
-    - name: echo
-      image: ubuntu
-      script: |
-        #!/bin/bash
-        echo "$(params.message)"
----
----
-apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
-  name: simple-pipeline
+  name: full-cd-pipeline
 spec:
   params:
-    - name: message
+    - name: repo-url
       type: string
-      default: "Running pipeline..."
+    - name: branch-name
+      type: string
+      default: main
+    - name: image-name
+      type: string
+      default: image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/myapp
+
+  workspaces:
+    - name: shared-workspace
+
   tasks:
-    - name: run-echo
+
+    # 1. CLONE REPO
+    - name: clone-repo
       taskRef:
-        name: echo-task
+        name: git-clone
       params:
-        - name: message
-          value: "$(params.message)"
+        - name: url
+          value: "$(params.repo-url)"
+        - name: revision
+          value: "$(params.branch-name)"
+      workspaces:
+        - name: output
+          workspace: shared-workspace
+
+    # 2. INSTALL + LINT + TEST
+    - name: test-app
+      runAfter: ["clone-repo"]
+      taskSpec:
+        workspaces:
+          - name: source
+        steps:
+          - name: install-deps
+            image: python:3.9-slim
+            workingDir: /workspace/source
+            script: |
+              pip install --upgrade pip
+              pip install flake8 nose
+
+          - name: lint
+            image: python:3.9-slim
+            workingDir: /workspace/source
+            script: |
+              pip install flake8
+              flake8 .
+
+          - name: test
+            image: python:3.9-slim
+            workingDir: /workspace/source
+            script: |
+              pip install nose
+              nosetests || true
+      workspaces:
+        - name: source
+          workspace: shared-workspace
