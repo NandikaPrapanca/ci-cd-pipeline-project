@@ -68,3 +68,13 @@ spec:
             script: |
               oc new-app python:3.9-slim --name=myapp || true
               oc expose svc myapp || true
+    # 4. CLEANUP
+    - name: cleanup
+      runAfter: ["deploy"]
+      taskSpec:
+        steps:
+          - name: cleanup-workspace
+            image: alpine
+            script: |
+              echo "Cleaning up workspace..."
+              rm -rf /workspace/*
